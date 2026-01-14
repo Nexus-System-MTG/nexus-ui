@@ -298,27 +298,60 @@ const [files, setFiles] = React.useState<File[]>([]);
 
 ## Form
 
-Componente wrapper inteligente para formulários. Ele gerencia estados de loading automaticamente e exibe erros de forma padronizada.
+Componente wrapper inteligente para formulários. Ele integra `react-hook-form` e `zod` para validação de esquemas, gerencia estados de loading automaticamente e exibe erros de forma padronizada.
 
 ### Importação
 
 ```tsx
 import { NexusForm } from 'nexus-ui';
+import { z } from 'zod';
+import { useFormContext } from 'react-hook-form'; // Opcional, para acesso avançado
 ```
 
-### Exemplo
+### Exemplo Simples (Sem Validação)
 
 ```tsx
 <NexusForm 
-  onSubmit={async (e) => {
+  onSubmit={async (data) => {
       await api.createUser(data);
-      // Se lançar erro, o NexusForm captura e mostra no topo
   }}
-  submitLabel="Salvar Usuário"
-  successMessage="Usuário criado com sucesso!"
+  submitLabel="Salvar"
 >
-    <NexusInput label="Nome" required />
-    <NexusInput label="Email" required />
+    <NexusInput label="Nome" name="nome" required />
+</NexusForm>
+```
+
+### Exemplo com Validação Zod
+
+```tsx
+const schema = z.object({
+  email: z.string().email("Email inválido"),
+  password: z.string().min(6, "Senha muito curta"),
+});
+
+<NexusForm 
+  schema={schema}
+  onSubmit={async (data) => {
+      // 'data' é tipado corretamente inferido do schema
+      await login(data);
+  }}
+  className="max-w-sm"
+>
+    {({ register, formState: { errors } }) => (
+        <>
+            <NexusInput 
+                label="Email" 
+                {...register("email")} 
+                error={errors.email?.message as string} 
+            />
+            <NexusInput 
+                type="password" 
+                label="Senha" 
+                {...register("password")} 
+                error={errors.password?.message as string} 
+            />
+        </>
+    )}
 </NexusForm>
 ```
 
@@ -326,9 +359,12 @@ import { NexusForm } from 'nexus-ui';
 
 | Propriedade | Tipo | Descrição |
 | --- | --- | --- |
-| `onSubmit` | `(e) => Promise<void>` | Função assíncrona. O form aguarda a Promise resolver. |
-| `loadingLabel` | `string` | Texto do botão enquanto carrega (ex: "Salvando..."). |
+| `onSubmit` | `SubmitHandler<T>` | Função chamada no sucesso do submit. Recebe os dados validados. |
+| `schema` | `ZodSchema<T>` | Schema Zod para validação. |
+| `defaultValues` | `DefaultValues<T>` | Valores iniciais do formulário. |
+| `children` | `ReactNode \| ((methods) => ReactNode)` | Conteúdo do form. Pode ser uma função para acessar `register` e `errors` facilmente. |
+| `loadingLabel` | `string` | Texto do botão enquanto carrega. |
 | `submitLabel` | `string` | Texto padrão do botão. |
-| `error` | `string` | Erro forçado (se quiser controlar manualmente). |
-| `successMessage` | `string` | Mensagem de sucesso ao finalizar a Promise sem erros. |
+| `error` | `string` | Erro global forçado. |
+| `successMessage` | `string` | Mensagem de sucesso global. |
 

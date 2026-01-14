@@ -1,12 +1,17 @@
 import * as React from "react"
+import { useForm, FormProvider } from "react-hook-form"
+import type { SubmitHandler, UseFormProps, FieldValues, UseFormReturn } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import type { ZodType } from "zod"
 import { cn } from "../../lib/utils"
 import { Button } from "../Button/Button"
 import { NexusAlert } from "../Alert/NexusAlert"
 
-export interface NexusFormProps extends React.FormHTMLAttributes<HTMLFormElement> {
-    onSubmit: (e: React.FormEvent) => Promise<void> | void
-    defaultValues?: Record<string, any>
-    children: React.ReactNode
+export interface NexusFormProps<T extends FieldValues> extends Omit<React.FormHTMLAttributes<HTMLFormElement>, 'onSubmit' | 'children'> {
+    onSubmit: SubmitHandler<T>
+    schema?: ZodType<T, any, any>
+    defaultValues?: UseFormProps<T>['defaultValues']
+    children: React.ReactNode | ((methods: UseFormReturn<T>) => React.ReactNode)
     submitLabel?: string
     loadingLabel?: string
     isLoading?: boolean
@@ -16,13 +21,15 @@ export interface NexusFormProps extends React.FormHTMLAttributes<HTMLFormElement
 }
 
 /**
- * NexusForm - A smart wrapper for forms.
- * Handles loading states, error display, and success messages automatically.
+ * NexusForm - A smart wrapper for forms using react-hook-form and zod.
+ * Handles validation, loading states, error display, and success messages automatically.
  */
-export function NexusForm({ 
+export function NexusForm<T extends FieldValues>({ 
     className,
     onSubmit,
     children,
+    schema,
+    defaultValues,
     submitLabel = "Salvar",
     loadingLabel = "Salvando...",
     isLoading: externalLoading = false,
@@ -30,66 +37,56 @@ export function NexusForm({
     successMessage = null,
     footer,
     ...props 
-}: NexusFormProps) {
-    const [internalLoading, setInternalLoading] = React.useState(false)
-    const [internalError, setInternalError] = React.useState<string | null>(null)
+}: NexusFormProps<T>) {
+    const methods = useForm<T>({
+        // @ts-ignore - Resolver types allow flexible schemas but TS struggles with generic T
+        resolver: schema ? zodResolver(schema) : undefined,
+        defaultValues,
+    })
 
-    const isLoading = externalLoading || internalLoading
-    const error = externalError || internalError
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        e.stopPropagation()
-
-        setInternalLoading(true)
-        setInternalError(null)
-
-        try {
-            await onSubmit(e)
-        } catch (err: any) {
-            console.error("NexusForm Submit Error:", err)
-            setInternalError(err.message || "Ocorreu um erro inesperado ao salvar.")
-        } finally {
-            setInternalLoading(false)
-        }
-    }
+    const { handleSubmit, formState: { isSubmitting: formSubmitting } } = methods
+    
+    // Combine external and internal loading states
+    const isLoading = externalLoading || formSubmitting
 
     return (
-        <form 
-            onSubmit={handleSubmit} 
-            className={cn("flex flex-col gap-6 w-full", className)} 
-            {...props}
-        >
-            {/* Global Error Alert */}
-            {error && (
-                <NexusAlert variant="error" title="Erro" className="animate-in fade-in slide-in-from-top-2">
-                    {error}
-                </NexusAlert>
-            )}
+        <FormProvider {...methods}>
+            <form 
+                onSubmit={handleSubmit(onSubmit)} 
+                className={cn("flex flex-col gap-6 w-full", className)} 
+                {...props}
+            >
+                {/* Global Error Alert */}
+                {externalError && (
+                    <NexusAlert variant="error" title="Erro" className="animate-in fade-in slide-in-from-top-2">
+                        {externalError}
+                    </NexusAlert>
+                )}
 
-             {/* Success Alert */}
-             {successMessage && !isLoading && !error && (
-                <NexusAlert variant="success" title="Sucesso" className="animate-in fade-in slide-in-from-top-2">
-                    {successMessage}
-                </NexusAlert>
-            )}
+                 {/* Success Alert */}
+                 {successMessage && !isLoading && !externalError && (
+                    <NexusAlert variant="success" title="Sucesso" className="animate-in fade-in slide-in-from-top-2">
+                        {successMessage}
+                    </NexusAlert>
+                )}
 
-            <div className="flex flex-col gap-4">
-                {children}
-            </div>
+                <div className="flex flex-col gap-4">
+                    {typeof children === 'function' ? children(methods) : children}
+                </div>
 
-            {/* Footer / Actions */}
-            <div className="pt-4 flex items-center gap-4 justify-end border-t border-border mt-2">
-                 {footer ? footer : (
-                     <Button 
-                        type="submit" 
-                        isLoading={isLoading}
-                        disabled={isLoading}
-                     >
-                        {isLoading ? loadingLabel : submitLabel}
-                     </Button>
-                 )}
-            </div>
-        </form>
+                {/* Footer / Actions */}
+                <div className="pt-4 flex items-center gap-4 justify-end border-t border-border mt-2">
+                     {footer ? footer : (
+                         <Button 
+                            type="submit" 
+                            isLoading={isLoading}
+                            disabled={isLoading}
+                         >
+                            {isLoading ? loadingLabel : submitLabel}
+                         </Button>
+                     )}
+                </div>
+            </form>
+        </FormProvider>
     )
 }

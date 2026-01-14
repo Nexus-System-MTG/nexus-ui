@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
+import { z } from 'zod';
 import { NexusForm } from './NexusForm';
 import { NexusInput } from '../Input/NexusInput';
 
@@ -10,6 +11,11 @@ const meta: Meta<typeof NexusForm> = {
 
 export default meta;
 type Story = StoryObj<typeof NexusForm>;
+
+const userSchema = z.object({
+  name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
+  email: z.string().email("Email inválido"),
+});
 
 export const Default: Story = {
   render: () => (
@@ -28,16 +34,32 @@ export const Default: Story = {
   )
 };
 
-export const WithError: Story = {
+export const WithValidation: Story = {
     render: () => (
         <NexusForm 
-          onSubmit={async () => {
+          schema={userSchema}
+          onSubmit={async (data) => {
               await new Promise(resolve => setTimeout(resolve, 1000))
-              throw new Error("Email já está em uso!")
+              alert(`Dados válidos: ${JSON.stringify(data, null, 2)}`)
           }}
           className="max-w-md border p-6 rounded-lg"
         >
-            <NexusInput label="Email" defaultValue="erro@teste.com" />
+          {({ register, formState: { errors } }) => (
+            <>
+              <NexusInput 
+                label="Nome" 
+                placeholder="Seu nome" 
+                {...register("name")}
+                error={errors.name?.message as string}
+              />
+              <NexusInput 
+                label="Email" 
+                placeholder="seu@email.com" 
+                {...register("email")}
+                error={errors.email?.message as string}
+              />
+            </>
+          )}
         </NexusForm>
     )
   };
