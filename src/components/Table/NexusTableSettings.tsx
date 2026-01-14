@@ -4,7 +4,7 @@ import { NexusSelect } from "../Select/NexusSelect"
 import { Popover, PopoverContent, PopoverTrigger, PopoverPortal } from "@radix-ui/react-popover"
 import { NexusCheckbox } from "../Checkbox/NexusCheckbox"
 import type { DetailViewMode } from "./NexusTableDetailView"
-import { NexusTooltip, NexusTooltipContent, NexusTooltipProvider, NexusTooltipTrigger } from "../Tooltip/NexusTooltip"
+import { NexusTooltip, NexusTooltipProvider, NexusTooltipTrigger } from "../Tooltip/NexusTooltip"
 import { Reorder } from "framer-motion"
 
 interface NexusTableSettingsProps<TData> {
@@ -52,7 +52,7 @@ export function NexusTableSettings<TData>({
     return (
          <NexusTooltipProvider>
             <Popover open={open} onOpenChange={setOpen}>
-                <NexusTooltip>
+                <NexusTooltip content="Configurações">
                     <NexusTooltipTrigger asChild>
                         <PopoverTrigger asChild>
                             <button 
@@ -65,9 +65,6 @@ export function NexusTableSettings<TData>({
                             </button>
                         </PopoverTrigger>
                     </NexusTooltipTrigger>
-                    <NexusTooltipContent side="top">
-                        <p>Configurações</p>
-                    </NexusTooltipContent>
                 </NexusTooltip>
             
             <PopoverPortal>

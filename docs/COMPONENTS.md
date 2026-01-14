@@ -10,6 +10,58 @@ Documentação dos componentes fundamentais da biblioteca Nexus UI.
 - [DatePicker](#datepicker)
 - [Dialog](#dialog)
 - [Checkbox](#checkbox)
+- [Alert](#alert)
+
+---
+
+## Alert
+
+Componente para exibir mensagens de feedback (sucesso, erro, aviso, info) com suporte a auto-fechamento.
+
+### Importação
+
+```tsx
+import { NexusAlert } from 'nexus-ui';
+```
+
+### Exemplo
+
+```tsx
+// Alerta simples (Info)
+<NexusAlert onDismiss={() => console.log('closed')}>
+  Atualização disponível.
+</NexusAlert>
+
+// Alerta de Erro com Auto-Dismiss desativado
+<NexusAlert 
+   variant="error" 
+   title="Erro no Servidor" 
+   autoDismiss={false}
+   onClose={() => setOpen(false)}
+>
+   Não foi possível salvar os dados.
+</NexusAlert>
+```
+
+### Propriedades
+
+| Propriedade | Tipo | Padrão | Descrição |
+| --- | --- | --- | --- |
+| `variant` | `'info' \| 'success' \| 'warning' \| 'error'` | `'info'` | Estilo visual do alerta. |
+| `title` | `string` | `undefined` | Título em negrito. |
+| `icon` | `string` | `undefined` | Nome do ícone Material Symbols (sobrescreve o padrão). |
+| `onClose` | `() => void` | `undefined` | Função chamada ao fechar (manual ou auto). Obrigatória para auto-dismiss. |
+| `autoDismiss` | `boolean` | `true` | Se deve fechar automaticamente após o tempo definido. |
+| `duration` | `number` | `5000` | Tempo em ms para auto-fechamento. |
+
+---
+
+## Button
+- [Input](#input)
+- [Select](#select)
+- [DatePicker](#datepicker)
+- [Dialog](#dialog)
+- [Checkbox](#checkbox)
 
 ---
 
@@ -206,6 +258,77 @@ import { NexusCheckbox } from 'nexus-ui';
 ```tsx
 <div className="flex items-center gap-2">
   <NexusCheckbox id="terms" />
-  <label htmlFor="terms">Aceito os termos</label>
+
+---
+
+## FileUpload
+
+Área de arrastar e soltar visualmente rica para upload de arquivos. Use em conjunto com `NexusFilePreview`.
+
+### Importação
+
+```tsx
+import { NexusFileUpload, NexusFilePreview } from 'nexus-ui';
+```
+
+### Exemplo
+
+```tsx
+const [files, setFiles] = React.useState<File[]>([]);
+
+<NexusFileUpload 
+  onFilesSelected={(newFiles) => setFiles(prev => [...prev, ...newFiles])}
+  multiple
+  accept={['image/*', 'video/*']}
+/>
+
+{/* Lista de Preview */}
+<div className="mt-4 gap-2 flex flex-col">
+  {files.map((file, i) => (
+      <NexusFilePreview 
+         key={i} 
+         file={file} 
+         onRemove={() => handleRemove(i)} 
+      />
+  ))}
 </div>
 ```
+
+---
+
+## Form
+
+Componente wrapper inteligente para formulários. Ele gerencia estados de loading automaticamente e exibe erros de forma padronizada.
+
+### Importação
+
+```tsx
+import { NexusForm } from 'nexus-ui';
+```
+
+### Exemplo
+
+```tsx
+<NexusForm 
+  onSubmit={async (e) => {
+      await api.createUser(data);
+      // Se lançar erro, o NexusForm captura e mostra no topo
+  }}
+  submitLabel="Salvar Usuário"
+  successMessage="Usuário criado com sucesso!"
+>
+    <NexusInput label="Nome" required />
+    <NexusInput label="Email" required />
+</NexusForm>
+```
+
+### Propriedades
+
+| Propriedade | Tipo | Descrição |
+| --- | --- | --- |
+| `onSubmit` | `(e) => Promise<void>` | Função assíncrona. O form aguarda a Promise resolver. |
+| `loadingLabel` | `string` | Texto do botão enquanto carrega (ex: "Salvando..."). |
+| `submitLabel` | `string` | Texto padrão do botão. |
+| `error` | `string` | Erro forçado (se quiser controlar manualmente). |
+| `successMessage` | `string` | Mensagem de sucesso ao finalizar a Promise sem erros. |
+

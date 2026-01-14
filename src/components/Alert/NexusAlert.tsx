@@ -29,6 +29,16 @@ export interface NexusAlertProps extends React.HTMLAttributes<HTMLDivElement> {
   title?: string
   icon?: string
   onClose?: () => void
+  /**
+   * If true, the alert will automatically call onClose after `duration` ms.
+   * Default: true
+   */
+  autoDismiss?: boolean
+  /**
+   * Duration in milliseconds before auto-dismissing.
+   * Default: 5000
+   */
+  duration?: number
 }
 
 export function NexusAlert({ 
@@ -36,12 +46,24 @@ export function NexusAlert({
   title, 
   icon, 
   onClose, 
+  autoDismiss = true,
+  duration = 5000,
   children, 
   className,
   ...props 
 }: NexusAlertProps) {
   const styles = alertVariants[variant]
   const iconName = icon || styles.defaultIcon
+
+  React.useEffect(() => {
+    if (!autoDismiss || !onClose) return
+
+    const timer = setTimeout(() => {
+      onClose()
+    }, duration)
+
+    return () => clearTimeout(timer)
+  }, [autoDismiss, duration, onClose])
 
   return (
     <div 

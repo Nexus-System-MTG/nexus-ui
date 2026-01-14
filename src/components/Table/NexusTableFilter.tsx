@@ -115,7 +115,7 @@ export function NexusTableFilter<TData>({ table }: NexusTableFilterProps<TData>)
     return (
         <NexusTooltipProvider>
             <Popover open={open} onOpenChange={setOpen}>
-                <NexusTooltip>
+                <NexusTooltip content="Filtrar">
                     <NexusTooltipTrigger asChild>
                         <PopoverTrigger asChild>
                             <button 

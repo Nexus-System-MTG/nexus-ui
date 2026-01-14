@@ -2,11 +2,9 @@ import * as React from "react"
 import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 import { cn } from "../../lib/utils"
 
-const NexusTooltipProvider = TooltipPrimitive.Provider
-
-const NexusTooltip = TooltipPrimitive.Root
-
+const NexusTooltipRoot = TooltipPrimitive.Root
 const NexusTooltipTrigger = TooltipPrimitive.Trigger
+const NexusTooltipProvider = TooltipPrimitive.Provider
 
 const NexusTooltipContent = React.forwardRef<
   React.ElementRef<typeof TooltipPrimitive.Content>,
@@ -24,4 +22,26 @@ const NexusTooltipContent = React.forwardRef<
 ))
 NexusTooltipContent.displayName = TooltipPrimitive.Content.displayName
 
-export { NexusTooltip, NexusTooltipTrigger, NexusTooltipContent, NexusTooltipProvider }
+export interface NexusTooltipProps {
+    children: React.ReactNode
+    content: React.ReactNode
+}
+
+function NexusTooltip({ children, content }: NexusTooltipProps) {
+    const isSingleChild = React.Children.count(children) === 1 && React.isValidElement(children)
+    
+    return (
+        <NexusTooltipProvider>
+            <NexusTooltipRoot>
+                <NexusTooltipTrigger asChild>
+                    {isSingleChild ? children : <span>{children}</span>}
+                </NexusTooltipTrigger>
+                <NexusTooltipContent>
+                    {content}
+                </NexusTooltipContent>
+            </NexusTooltipRoot>
+        </NexusTooltipProvider>
+    )
+}
+
+export { NexusTooltip, NexusTooltipRoot, NexusTooltipTrigger, NexusTooltipContent, NexusTooltipProvider }

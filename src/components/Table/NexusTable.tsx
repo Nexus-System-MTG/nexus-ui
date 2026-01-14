@@ -28,6 +28,7 @@ import { NexusTableLoading } from "./NexusTableLoading"
 import { NexusTableDetailView, type DetailViewMode, type DetailSection } from "./NexusTableDetailView"
 import { NexusTableMassEdit } from "./NexusTableMassEdit"
 import { NexusDropdownMenu, NexusDropdownMenuContent, NexusDropdownMenuItem, NexusDropdownMenuTrigger } from "../DropdownMenu/NexusDropdownMenu"
+import { NexusTooltip } from '../Tooltip/NexusTooltip'
 import { cn } from "../../lib/utils"
 
 
@@ -596,42 +597,40 @@ export function NexusTable<TData, TValue>({
            />
        </div>
 
-       {/* Bulk Actions Floating Bar */}
-       {effectiveBulkActions.length > 0 && table.getFilteredSelectedRowModel().rows.length > 0 && (
-           <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-4">
-               <div className="bg-foreground text-background rounded-full px-6 py-3 shadow-xl flex items-center gap-4 border border-border/20">
-                   <span className="font-semibold text-sm whitespace-nowrap">
-                       {table.getFilteredSelectedRowModel().rows.length} selecionado(s)
-                   </span>
-                   <div className="h-4 w-[1px] bg-background/20"></div>
-                   <div className="flex items-center gap-2">
-                       {effectiveBulkActions.map((action, idx) => (
-                           <Button
-                               key={idx}
-                               size="sm"
-                               variant={action.variant === 'destructive' ? 'destructive' : 'secondary'}
-                               className={cn("h-8 rounded-full text-xs gap-1.5", 
-                                   action.variant === 'primary' && "bg-background text-foreground hover:bg-background/90",
-                                   action.variant === 'outline' && "bg-transparent border border-background/20 text-background hover:bg-background/10"
-                               )}
-                               onClick={() => action.onClick(table.getFilteredSelectedRowModel().rows.map(r => r.original))}
-                           >
-                               {action.icon && <span className="material-symbols-outlined text-[16px]">{action.icon}</span>}
-                               {action.label}
-                           </Button>
-                       ))}
-                   </div>
-                   <Button 
-                       variant="ghost" 
-                       size="sm" 
-                       className="h-8 w-8 p-0 rounded-full text-background/70 hover:text-background hover:bg-background/10 ml-2"
-                       onClick={() => table.resetRowSelection()}
-                   >
-                       <span className="material-symbols-outlined text-[20px]">close</span>
-                   </Button>
-               </div>
-           </div>
-       )}
+        {/* Bulk Actions Header (Overlay) */}
+        {effectiveBulkActions.length > 0 && table.getFilteredSelectedRowModel().rows.length > 0 && (
+            <div className="mb-4 rounded-lg bg-blue-50/50 border border-blue-100 dark:bg-blue-900/20 dark:border-blue-800 animate-in fade-in slide-in-from-top-2 overflow-hidden">
+                <div className="px-4 py-3 flex items-center justify-between bg-gradient-to-r from-blue-100/50 to-transparent dark:from-blue-900/40">
+                    <div className="flex items-center gap-3">
+                         <div className="flex items-center justify-center w-6 h-6 rounded bg-blue-600 text-white shadow-sm">
+                            <span className="text-xs font-bold">{table.getFilteredSelectedRowModel().rows.length}</span>
+                         </div>
+                         <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                            registro(s) selecionado(s)
+                         </span>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                        {effectiveBulkActions.map((action, idx) => (
+                            <NexusTooltip key={idx} content={action.label}>
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className={cn("h-9 w-9 text-blue-700 hover:text-blue-800 hover:bg-blue-200/50 dark:text-blue-300 dark:hover:text-blue-200 dark:hover:bg-blue-800/50",
+                                        action.variant === 'destructive' && "text-red-600 hover:text-red-700 hover:bg-red-100/50 dark:text-red-400 dark:hover:bg-red-900/30"
+                                    )}
+                                    onClick={() => action.onClick(table.getFilteredSelectedRowModel().rows.map(r => r.original))}
+                                >
+                                    <span className="material-symbols-outlined text-[20px]">
+                                        {action.icon || (action.label.toLowerCase().includes('excluir') ? 'delete' : 'edit')}
+                                    </span>
+                                </Button>
+                            </NexusTooltip>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        )}
 
        <NexusTableForm  
             isOpen={isFormOpen}

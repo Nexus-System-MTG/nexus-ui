@@ -24,11 +24,19 @@ export function NexusThemeProvider({
   children,
   defaultTheme = "system",
   storageKey = "nexus-ui-theme",
+  forcedTheme,
   ...props
-}: ThemeProviderProps) {
+}: ThemeProviderProps & { forcedTheme?: Theme }) {
   const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
+    () => forcedTheme || (localStorage.getItem(storageKey) as Theme) || defaultTheme
   )
+
+  // Sync forcedTheme if it changes
+  useEffect(() => {
+    if (forcedTheme) {
+        setTheme(forcedTheme)
+    }
+  }, [forcedTheme])
 
   useEffect(() => {
     const root = window.document.documentElement

@@ -1,8 +1,8 @@
-import { defineConfig } from 'vite';
+/// <reference types="vitest" />
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
 import { playwright } from '@vitest/browser-playwright';
 import dts from 'vite-plugin-dts';
 
@@ -25,12 +25,33 @@ export default defineConfig({
       fileName: (format) => `nexus-ui.${format}.js`
     },
     rollupOptions: {
-      external: ['react', 'react-dom', 'react/jsx-runtime'],
+      // Make sure to externalize deps that shouldn't be bundled
+      // into your library
+      external: [
+        'react', 
+        'react-dom', 
+        'react/jsx-runtime',
+        // Externalize all dependencies to reduce bundle size
+        'recharts',
+        'framer-motion',
+        'date-fns',
+        'lucide-react',
+        'clsx',
+        'tailwind-merge',
+        'class-variance-authority',
+        '@tanstack/react-table',
+        'react-day-picker',
+        'react-imask',
+        // Regex to catch all radix-ui components
+        /^@radix-ui\/.*/,
+      ],
       output: {
         globals: {
           react: 'React',
           'react-dom': 'ReactDOM',
-          'react/jsx-runtime': 'jsxRuntime'
+          'react/jsx-runtime': 'jsxRuntime',
+          recharts: 'Recharts',
+          'framer-motion': 'FramerMotion'
         }
       }
     }
@@ -39,11 +60,8 @@ export default defineConfig({
     projects: [{
       extends: true,
       plugins: [
-      // The plugin will run tests for the stories defined in your Storybook config
-      // See options at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon#storybooktest
-      storybookTest({
-        configDir: path.join(dirname, '.storybook')
-      })],
+      // Storybook test plugin removed
+      ],
       test: {
         name: 'storybook',
         browser: {

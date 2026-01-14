@@ -1,0 +1,61 @@
+# Nexus UI Library Context
+
+Nexus UI is a modern, React-based component library built with Tailwind CSS and Radix UI.
+It focuses on accessibility, premium aesthetics (glassmorphism, gradients), and developer experience.
+
+## Key Technologies
+- **React**: Functional components + Hooks
+- **Tailwind CSS**: Styling via utility classes + arbitrary values for animations
+- **Radix UI**: Primitives for complex interactive components (Dialog, Accordion, Checkbox, etc.)
+- **Material Symbols**: Iconography (via font/span)
+
+## Core Components Structure
+
+### Layout
+- `NexusSidebar`: Collapsible sidebar with accordion sections. Use `NexusLoginTemplate` for auth screens.
+- `NexusTable`: Powerful data table. Supports:
+  - `columns`: Array of definitions (`key`, `label`, `dataType`).
+  - `data`: Array of objects.
+  - `onBulkDelete` / `onBulkEdit`: Native support for batch actions.
+  - `renderDetail`: Custom row details (Modal/Sheet).
+
+### Forms
+- `NexusInput`: Supports `label` (floating), `leftIcon`, `mask` (cpf, phone).
+- `NexusSelect`: searchable, accessible (Combobox pattern).
+- `NexusDatePicker`: Custom calendar implementation.
+- `NexusFileUpload`: Google-style drag & drop. Use with `NexusFilePreview` for validation/thumbnails.
+- `NexusForm`: Smart wrapper. Pass an async `onSubmit` and it handles loading state disabling buttons and showing errors automatically.
+- `NexusAlert`: Feedback messages with `autoDismiss` (default 5000ms) and variants (success, error, etc). requires `onClose`.
+
+### Theming
+- Use `NexusThemeProvider` at the root.
+- Dark mode is handled via `dark` class on `<html>` and CSS variables in `globals.css`.
+- Colors: `bg-background`, `text-foreground`, `bg-primary`, `bg-sidebar-background`.
+
+## Testing
+- **Visual**: Storybook + Chromatic (`npm run test-visual`).
+- **Unit**: Vitest (configured in `vite.config.ts`).
+- **Stories**: Found in `src/**/*.stories.tsx`. All new components must have stories.
+
+## Patterns
+- **Icons**: Use `<span className="material-symbols-outlined">icon_name</span>`.
+- **Modals**: controlled via `open` prop or Radix primitives.
+- **Responsiveness**: Mobile-first, but components like Table switch to `Card` view automatically on small screens.
+
+## Example Usage
+
+### Creating a list with sidebar
+```tsx
+import { NexusSidebar, NexusTable } from 'nexus-ui';
+
+function App() {
+  return (
+    <div className="flex">
+        <NexusSidebar sections={[...]} />
+        <main className="flex-1 p-4">
+             <NexusTable data={...} columns={...} />
+        </main>
+    </div>
+  )
+}
+```

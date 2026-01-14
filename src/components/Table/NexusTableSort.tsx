@@ -3,7 +3,7 @@ import type { Table } from "@tanstack/react-table"
 import { NexusSelect } from "../Select/NexusSelect"
 import { Button } from "../Button/Button"
 import { Popover, PopoverContent, PopoverTrigger, PopoverPortal } from "@radix-ui/react-popover"
-import { NexusTooltip, NexusTooltipContent, NexusTooltipProvider, NexusTooltipTrigger } from "../Tooltip/NexusTooltip"
+import { NexusTooltip, NexusTooltipProvider, NexusTooltipTrigger } from "../Tooltip/NexusTooltip"
 
 interface NexusTableSortProps<TData> {
     table: Table<TData>
@@ -47,7 +47,7 @@ export function NexusTableSort<TData>({ table }: NexusTableSortProps<TData>) {
     return (
         <NexusTooltipProvider>
             <Popover open={open} onOpenChange={setOpen}>
-                <NexusTooltip>
+                <NexusTooltip content="Ordenar">
                     <NexusTooltipTrigger asChild>
                         <PopoverTrigger asChild>
                             <button 
@@ -60,9 +60,6 @@ export function NexusTableSort<TData>({ table }: NexusTableSortProps<TData>) {
                             </button>
                         </PopoverTrigger>
                     </NexusTooltipTrigger>
-                    <NexusTooltipContent side="top">
-                        <p>Ordenar</p>
-                    </NexusTooltipContent>
                 </NexusTooltip>
                 <PopoverPortal>
                     <PopoverContent className="w-[400px] p-0 bg-background border border-border rounded-xl shadow-2xl z-[1000] overflow-hidden" align="end" sideOffset={5}>

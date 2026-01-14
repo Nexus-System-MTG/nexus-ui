@@ -19,6 +19,7 @@ const buttonVariants = cva(
         sm: "h-9 px-3",
         md: "h-10 px-4 py-2",
         lg: "h-11 px-8",
+        icon: "h-10 w-10",
       },
       iconOnly: {
         true: "p-0 rounded-full aspect-square",
@@ -62,24 +63,22 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={isLoading || props.disabled}
         {...elementProps}
       >
-        {isLoading ? (
-           <span className="material-symbols-outlined animate-spin text-[20px]">progress_activity</span>
+        {asChild ? (
+          children
         ) : (
-          <>
-            {leftIcon && !isLoading && (
-               <span className="material-symbols-outlined text-[20px] mr-2">{leftIcon}</span>
-            )}
-            
-            {/* If asChild is used, children is the only child. Slot handles it. 
-                If we inject icons, Slot might break if children is not handled carefully.
-                But for standard non-asChild usage, this is perfect. 
-            */}
-            {children}
-            
-            {rightIcon && !isLoading && (
-               <span className="material-symbols-outlined text-[20px] ml-2">{rightIcon}</span>
-            )}
-          </>
+          isLoading ? (
+             <span className="material-symbols-outlined animate-spin text-[20px]">progress_activity</span>
+          ) : (
+            <>
+              {leftIcon && !isLoading && (
+                 <span className="material-symbols-outlined text-[20px] mr-2">{leftIcon}</span>
+              )}
+              {children}
+              {rightIcon && !isLoading && (
+                 <span className="material-symbols-outlined text-[20px] ml-2">{rightIcon}</span>
+              )}
+            </>
+          )
         )}
       </Comp>
     )
