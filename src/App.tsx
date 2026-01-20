@@ -1,5 +1,4 @@
 import { NexusThemeProvider } from "./components/Theme/NexusThemeProvider"
-import { NexusThemeToggle } from "./components/Theme/NexusThemeToggle"
 import { NexusAppBar } from "./components/AppBar/NexusAppBar"
 import { NexusTypography } from "./components/Typography/NexusTypography"
 
@@ -7,15 +6,14 @@ function App() {
   return (
     <NexusThemeProvider defaultTheme="system" storageKey="nexus-ui-theme">
       <div className="min-h-screen bg-background text-foreground transition-colors duration-300 flex flex-col items-center">
-        <NexusAppBar position="sticky">
+        <NexusAppBar 
+          showThemeToggle={true}
+          className="sticky top-0 w-full"
+        >
           <div className="flex justify-between items-center w-full">
             <NexusTypography variant="h4" className="font-semibold">
               Nexus UI
             </NexusTypography>
-            <div className="flex items-center gap-4">
-               {/* Add other header items here like links if needed */}
-               <NexusThemeToggle />
-            </div>
           </div>
         </NexusAppBar>
 

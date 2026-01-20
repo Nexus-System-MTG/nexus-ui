@@ -1,23 +1,25 @@
 {
   "name": "@gpereira12/nexus-ui",
-  "version": "0.0.5",
+  "version": "0.0.40",
   "type": "module",
   "main": "./dist/nexus-ui.umd.js",
   "module": "./dist/nexus-ui.es.js",
-  "types": "./dist/index.d.ts",
+  "types": "./dist/types/index.d.ts",
   "files": [
     "dist"
   ],
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./dist/types/index.d.ts",
       "import": "./dist/nexus-ui.es.js",
       "require": "./dist/nexus-ui.umd.js"
-    }
+    },
+    "./dist/nexus-ui.css": "./dist/nexus-ui.css"
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "vite build && tsc -p tsconfig.app.json --declaration --emitDeclarationOnly --outDir dist/types",
+    "build:local": "npm run build && npm pack",
     "lint": "eslint .",
     "preview": "vite preview",
     "storybook": "storybook dev -p 6006",
@@ -52,6 +54,7 @@
     "framer-motion": "^12.25.0",
     "fuse.js": "^7.1.0",
     "lucide-react": "^0.562.0",
+    "next-themes": "^0.4.6",
     "react-day-picker": "^9.13.0",
     "react-hook-form": "^7.71.1",
     "react-imask": "^7.6.1",
