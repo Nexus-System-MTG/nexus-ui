@@ -5,7 +5,7 @@ import {
   NexusDropdownMenuItem,
   NexusDropdownMenuTrigger,
 } from "../DropdownMenu/NexusDropdownMenu"
-import { useTheme } from "./NexusThemeProvider"
+import { useTheme } from "next-themes"
 
 export function NexusThemeToggle() {
   const { setTheme } = useTheme()
