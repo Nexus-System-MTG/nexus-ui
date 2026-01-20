@@ -15,7 +15,9 @@ export interface NexusInputProps
   label?: string
   error?: string
   fullWidth?: boolean
+  variant?: 'outline' | 'filled'
 }
+
 
 const masks = {
   cpf: '000.000.000-00',
@@ -27,14 +29,16 @@ const masks = {
 }
 
 const NexusInput = React.forwardRef<HTMLInputElement, NexusInputProps>(
-  ({ className, mask, leftIcon, rightIcon, onRightIconClick, isPassword, label, error, fullWidth = true, ...props }, ref) => {
-    const [showPassword, setShowPassword] = React.useState(false)
-    const [hasValue, setHasValue] = React.useState(!!props.value || !!props.defaultValue);
+  ({ className, mask, leftIcon, rightIcon, onRightIconClick, isPassword, label, error, fullWidth = true, variant = 'outline', ...props }, ref) => {
+     const [showPassword, setShowPassword] = React.useState(false)
+     const [hasValue, setHasValue] = React.useState(!!props.value || !!props.defaultValue);
+     
+      // Sync hasValue with external value changes
+     React.useEffect(() => {
+         setHasValue(!!props.value || !!props.defaultValue);
+     }, [props.value, props.defaultValue]);
 
-     // Sync hasValue with external value changes
-    React.useEffect(() => {
-        setHasValue(!!props.value || !!props.defaultValue);
-    }, [props.value, props.defaultValue]);
+
 
     const inputType = isPassword ? (showPassword ? 'text' : 'password') : 'text'
 
@@ -51,12 +55,19 @@ const NexusInput = React.forwardRef<HTMLInputElement, NexusInputProps>(
       : rightIcon
 
     const wrapperClasses = cn(
-      "group flex items-center relative rounded-md border border-input bg-background/60 backdrop-blur-[4px] px-3 py-2.5 text-sm ring-offset-background transition-all duration-200",
-      "focus-within:border-primary focus-within:ring-0 focus-within:ring-offset-0",
+      "group flex items-center relative rounded-md border h-10 px-3 text-sm ring-offset-background transition-all duration-200",
+      
+      // Variants
+      variant === 'outline' && "border-input bg-background/60 backdrop-blur-[4px] focus-within:border-primary",
+      variant === 'filled' && "border-transparent bg-secondary/50 hover:bg-secondary/70 focus-within:bg-secondary/70 focus-within:ring-1 focus-within:ring-primary",
+      
+      "focus-within:ring-0 focus-within:ring-offset-0",
       error && "border-destructive focus-within:border-destructive",
       fullWidth ? "w-full" : "w-auto min-w-[200px]",
+      "disabled:cursor-not-allowed disabled:opacity-60 disabled:bg-muted/50 dark:disabled:bg-muted/30", // Added disabled styles
       className
     )
+
     
     // Floating label logic using peer-placeholder-shown or state
     // We'll use state "hasValue" combined with focus-within on wrapper
@@ -68,14 +79,18 @@ const NexusInput = React.forwardRef<HTMLInputElement, NexusInputProps>(
     // Let's emulate the "Outlined" Material Input.
     
     const labelClasses = cn(
-        "absolute left-3 transition-all duration-200 pointer-events-none bg-background px-1 z-10",
+        "absolute transition-all duration-200 pointer-events-none bg-background px-1 z-10",
+        leftIcon ? "left-9" : "left-3",
         // Floating state (active or has value)
         "group-focus-within:-top-2 group-focus-within:text-xs group-focus-within:text-primary",
         hasValue ? "-top-2 text-xs" : "top-2.5 text-muted-foreground text-sm",
         error && "text-destructive group-focus-within:text-destructive"
     )
 
-    const inputClasses = "w-full bg-transparent border-none p-0 focus:outline-none text-foreground font-body h-6"
+    const inputClasses = "flex-1 w-0 min-w-0 bg-transparent border-none p-0 focus:outline-none text-foreground font-body placeholder:opacity-0 focus:placeholder:opacity-100 transition-all duration-200"
+
+
+
     
     const onChangeHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
         setHasValue(!!e.target.value);
@@ -127,11 +142,12 @@ const NexusInput = React.forwardRef<HTMLInputElement, NexusInputProps>(
 
       return (
         <input
-          type={inputType}
           ref={ref}
           {...commonProps}
+          type={inputType}
           placeholder=" "
         />
+
       )
     }
 
@@ -156,12 +172,15 @@ const NexusInput = React.forwardRef<HTMLInputElement, NexusInputProps>(
             <button
               type="button"
               onClick={handleRightIconClick}
-              className="ml-2 focus:outline-none text-muted-foreground hover:text-foreground transition-colors"
+              onMouseDown={(e) => e.preventDefault()}
+              className="ml-2 focus:outline-none text-muted-foreground hover:text-foreground transition-colors cursor-pointer z-50 p-1"
+              style={{ pointerEvents: 'auto' }} // Ensure clickability
             >
                <span className="material-symbols-outlined text-[20px]">
                   {effectiveRightIcon}
                </span>
             </button>
+
           )}
         </div>
         

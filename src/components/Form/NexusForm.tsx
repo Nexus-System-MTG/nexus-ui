@@ -30,8 +30,9 @@ export function NexusForm<T extends FieldValues>({
     children,
     schema,
     defaultValues,
-    submitLabel = "Salvar",
+    submitLabel,
     loadingLabel = "Salvando...",
+
     isLoading: externalLoading = false,
     error: externalError = null,
     successMessage = null,
@@ -75,17 +76,21 @@ export function NexusForm<T extends FieldValues>({
                 </div>
 
                 {/* Footer / Actions */}
-                <div className="pt-4 flex items-center gap-4 justify-end border-t border-border mt-2">
-                     {footer ? footer : (
-                         <Button 
-                            type="submit" 
-                            isLoading={isLoading}
-                            disabled={isLoading}
-                         >
-                            {isLoading ? loadingLabel : submitLabel}
-                         </Button>
-                     )}
-                </div>
+                {/* Footer / Actions */}
+                {(footer || submitLabel) && (
+                    <div className="pt-4 flex items-center gap-4 justify-end border-t border-border mt-2">
+                         {footer ? footer : (
+                             <Button 
+                                type="submit" 
+                                isLoading={isLoading}
+                                disabled={isLoading}
+                             >
+                                {isLoading ? loadingLabel : submitLabel}
+                             </Button>
+                         )}
+                    </div>
+                )}
+
             </form>
         </FormProvider>
     )
