@@ -82,16 +82,28 @@ export function NexusTableFilter<TData>({ table }: NexusTableFilterProps<TData>)
         }))
     }
 
-    const handleApply = () => {
-        table.setGlobalFilter(localState)
+
+    // Auto-apply filters whenever localState changes
+    React.useEffect(() => {
+        if (open) {
+            table.setGlobalFilter(localState)
+        }
+    }, [localState, table, open])
+
+    const handleSaveFilter = () => {
+        // Persist current filter configuration
+        const tableId = (table.options.meta as any)?.tableId
+        if (tableId && typeof window !== 'undefined') {
+            localStorage.setItem(`nexus-table-${tableId}-saved-filter`, JSON.stringify(localState))
+        }
         setOpen(false)
     }
 
     const handleClear = () => {
         const cleared: AdvancedFilterState = { query: localState.query, logic: 'and', rules: [] }
         setLocalState(cleared)
-        table.setGlobalFilter(cleared) // Optional: apply immediately on clear? Or wait for Apply? Usually Clear applies.
     }
+
 
     // Helper to get operators for a column
     const getColumnOperators = (columnId: string) => {
@@ -267,9 +279,15 @@ export function NexusTableFilter<TData>({ table }: NexusTableFilterProps<TData>)
                     <Button variant="ghost" size="sm" onClick={handleClear} className="text-muted-foreground hover:text-foreground">
                         Limpar Filtros
                     </Button>
-                    <Button variant="primary" size="sm" onClick={handleApply} className="min-w-[100px] bg-amber-400 text-black hover:bg-amber-500 font-semibold">
-                        Filtrar
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => setOpen(false)} className="min-w-[100px]">
+                            Fechar
+                        </Button>
+                        <Button variant="primary" size="sm" onClick={handleSaveFilter} className="min-w-[100px] font-semibold">
+                            <span className="material-symbols-outlined text-[16px] mr-2">bookmark</span>
+                            Salvar Filtro
+                        </Button>
+                    </div>
                 </div>
             </PopoverContent>
             </PopoverPortal>

@@ -2,6 +2,7 @@ import * as React from "react"
 import type { Table } from "@tanstack/react-table"
 import { NexusSelect } from "../Select/NexusSelect"
 import { Popover, PopoverContent, PopoverTrigger, PopoverPortal } from "@radix-ui/react-popover"
+import { NexusSwitch } from "../Switch/NexusSwitch"
 import { NexusCheckbox } from "../Checkbox/NexusCheckbox"
 import type { DetailViewMode } from "./NexusTableDetailView"
 import { NexusTooltip, NexusTooltipProvider, NexusTooltipTrigger } from "../Tooltip/NexusTooltip"
@@ -25,6 +26,22 @@ export function NexusTableSettings<TData>({
     enableCustomization 
 }: NexusTableSettingsProps<TData>) {
     const [open, setOpen] = React.useState(false)
+
+    // Local state for expand content to enable UI reactivity
+    const tableId = (table.options.meta as any)?.tableId
+    const [expandContent, setExpandContent] = React.useState(() => {
+        if (!tableId) return false
+        const saved = localStorage.getItem(`nexus-table-${tableId}-expand-content`)
+        return saved === 'true'
+    })
+    
+    // Local state for detail view mode to enable UI reactivity  
+    const [localDetailViewMode, setLocalDetailViewMode] = React.useState(detailViewMode)
+    
+    // Sync prop changes
+    React.useEffect(() => {
+        setLocalDetailViewMode(detailViewMode)
+    }, [detailViewMode])
 
     // Columns for Visibility
     const allColumns = table.getAllLeafColumns()
@@ -95,28 +112,59 @@ export function NexusTableSettings<TData>({
                             </div>
                     </div>
 
+                    {/* Expandir conteúdo toggle */}
+                    <div className="space-y-2">
+                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Exibição de Conteúdo</label>
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-accent/20 border border-border/30">
+                            <div className="flex-1">
+                                <p className="text-sm font-medium">Expandir conteúdo</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">Expande texto longo verticalmente</p>
+                            </div>
+                            <NexusSwitch 
+                                checked={expandContent}
+                                onCheckedChange={(val) => {
+                                    const newValue = !!val
+                                    setExpandContent(newValue)
+                                    if (tableId && typeof window !== 'undefined') {
+                                        localStorage.setItem(`nexus-table-${tableId}-expand-content`, String(newValue))
+                                        window.dispatchEvent(new CustomEvent('nexus-table-setting-change'))
+                                    }
+                                }}
+                            />
+                        </div>
+                    </div>
+
                     {/* View Mode */}
                     {enableCustomization && (
                         <div className="space-y-2">
                             <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Detalhes (Ao Clicar)</label>
                             <div className="flex bg-muted/20 rounded p-1 border border-border">
                                 <button 
-                                    onClick={() => onDetailViewModeChange('modal')} 
-                                    className={`flex-1 flex items-center justify-center p-1.5 rounded transition-all ${detailViewMode === 'modal' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-white/10'}`}
+                                    onClick={() => {
+                                        setLocalDetailViewMode('modal')
+                                        onDetailViewModeChange('modal')
+                                    }} 
+                                    className={`flex-1 flex items-center justify-center p-1.5 rounded transition-all ${localDetailViewMode === 'modal' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
                                     title="Modal (Centro)"
                                 >
                                   <span className="material-symbols-outlined text-[18px]">branding_watermark</span>
                                 </button>
                                 <button 
-                                    onClick={() => onDetailViewModeChange('sheet')} 
-                                    className={`flex-1 flex items-center justify-center p-1.5 rounded transition-all ${detailViewMode === 'sheet' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-white/10'}`}
+                                    onClick={() => {
+                                        setLocalDetailViewMode('sheet')
+                                        onDetailViewModeChange('sheet')
+                                    }} 
+                                    className={`flex-1 flex items-center justify-center p-1.5 rounded transition-all ${localDetailViewMode === 'sheet' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
                                     title="Sheet (Lateral)"
                                 >
                                   <span className="material-symbols-outlined text-[18px]">dock_to_right</span>
                                 </button>
                                 <button 
-                                    onClick={() => onDetailViewModeChange('fullscreen')} 
-                                    className={`flex-1 flex items-center justify-center p-1.5 rounded transition-all ${detailViewMode === 'fullscreen' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-white/10'}`}
+                                    onClick={() => {
+                                        setLocalDetailViewMode('fullscreen')
+                                        onDetailViewModeChange('fullscreen')
+                                    }} 
+                                    className={`flex-1 flex items-center justify-center p-1.5 rounded transition-all ${localDetailViewMode === 'fullscreen' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}
                                     title="Tela Cheia"
                                 >
                                   <span className="material-symbols-outlined text-[18px]">fullscreen</span>

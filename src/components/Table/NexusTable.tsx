@@ -28,7 +28,6 @@ import { NexusTableLoading } from "./NexusTableLoading"
 import { NexusTableDetailView, type DetailViewMode, type DetailSection } from "./NexusTableDetailView"
 import { NexusTableMassEdit } from "./NexusTableMassEdit"
 import { NexusDropdownMenu, NexusDropdownMenuContent, NexusDropdownMenuItem, NexusDropdownMenuTrigger } from "../DropdownMenu/NexusDropdownMenu"
-import { NexusTooltip } from '../Tooltip/NexusTooltip'
 import { cn } from "../../lib/utils"
 
 
@@ -133,8 +132,10 @@ const advancedGlobalFilterFn = (row: Row<any>, _columnId: string, filterValue: a
     }
 }
 
-interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[] | NexusColumnDef[]
+// ... (End of advancedGlobalFilterFn)
+
+export interface DataTableProps<TData, TValue> {
+  columns: ColumnDef<TData, TValue>[]
   data: TData[]
   tableId?: string
   enableCustomization?: boolean
@@ -142,18 +143,27 @@ interface DataTableProps<TData, TValue> {
   toolbarActions?: React.ReactNode
   title?: string
   titleAs?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'
-  onSave?: (data: TData, isNew: boolean) => Promise<void> | void
-  onDelete?: (data: TData) => Promise<void> | void
+  onSave?: (data: TData) => void
+  onDelete?: (data: TData) => void
   rowActions?: NexusRowAction<TData>[]
   bulkActions?: NexusBulkAction<TData>[]
   loading?: boolean
-  loadingType?: 'spinner' | 'bar'
-  loadingColor?: string
+  loadingType?: 'spinner' | 'skeleton' | 'progress'
+  loadingColor?: 'primary' | 'secondary' | 'white'
   renderDetail?: (row: TData) => React.ReactNode
   detailSections?: DetailSection[]
-  onBulkDelete?: (rows: TData[]) => Promise<void> | void
-  onBulkEdit?: (rows: TData[], columnId: string, value: any) => Promise<void> | void
+  onBulkDelete?: (rows: TData[]) => void
+  onBulkEdit?: (rows: TData[], columnId?: string, value?: any) => void
+  onRowClick?: (row: Row<TData>) => void
+  enableSorting?: boolean
+  enableFiltering?: boolean
+  enablePagination?: boolean
+  enableColumnVisibility?: boolean
+  enableRowSelection?: boolean
+  defaultViewMode?: 'table' | 'card'
+  cardLayout?: 'grid' | 'list'
 }
+
 
 export function NexusTable<TData, TValue>({
   columns,
@@ -174,8 +184,17 @@ export function NexusTable<TData, TValue>({
   renderDetail,
   detailSections,
   onBulkDelete,
-  onBulkEdit
+  onBulkEdit,
+  onRowClick,
+  enableSorting = true,
+  enableFiltering = true,
+  enablePagination = true,
+  enableColumnVisibility = true,
+  enableRowSelection = true,
+  defaultViewMode = 'table',
+  cardLayout = 'grid'
 }: DataTableProps<TData, TValue>) {
+
   // Form State
   const [isFormOpen, setIsFormOpen] = React.useState(false)
   const [formData, setFormData] = React.useState<any>(null)
@@ -201,11 +220,19 @@ export function NexusTable<TData, TValue>({
       setIsFormOpen(true)
   }
 
-  const handleSaveData = (data: any) => {
+  const handleSaveData = async (data: any) => {
       if (onSave) {
-          onSave(data, isNewRecord)
+          try {
+              setIsOperationLoading(true)
+              // Cast to TData because defineField values might be partial
+              await onSave(data as TData)
+              setIsFormOpen(false)
+          } catch (error) {
+              console.error(error)
+          } finally {
+              setIsOperationLoading(false)
+          }
       }
-      setIsFormOpen(false)
   }
 
   const handleDeleteRequest = (row: TData) => {
@@ -215,15 +242,14 @@ export function NexusTable<TData, TValue>({
 
   const handleConfirmDelete = async () => {
       if (onDelete && itemToDelete) {
-          setIsOperationLoading(true)
           try {
-            await onDelete(itemToDelete)
-            setDeleteDialogOpen(false)
-            setItemToDelete(null)
+              setIsOperationLoading(true)
+              await onDelete(itemToDelete)
+              setDeleteDialogOpen(false)
           } catch (error) {
-            console.error("Failed to delete", error)
+              console.error(error)
           } finally {
-            setIsOperationLoading(false)
+               setIsOperationLoading(false)
           }
       }
   }
@@ -233,26 +259,26 @@ export function NexusTable<TData, TValue>({
 
   // Normalize columns
   const tableColumns = React.useMemo(() => {
-      if (!columns || columns.length === 0) return []
-      // Check if it's NexusColumnDef
+    if (!columns || columns.length === 0) return []
+    // Check if it's NexusColumnDef
       const firstCol = columns[0]
       const isSimplified = 'key' in firstCol && !('accessorKey' in firstCol) && !('id' in firstCol && !('key' in firstCol))
       
       let normalizedCols: ColumnDef<TData, any>[] = []
 
       if (isSimplified) {
-          normalizedCols = (columns as NexusColumnDef[]).map(col => {
-             const baseCol: ColumnDef<TData, any> = {
-                 accessorKey: col.key,
-                 header: col.label,
-                 enableColumnFilter: true,
-                 enableGlobalFilter: true,
-                 enableGrouping: true,
-                 meta: {
-                    dataType: col.dataType,
-                    options: col.form?.options
-                 }
-             }
+        normalizedCols = (columns as unknown as NexusColumnDef[]).map(col => {
+            const baseCol: ColumnDef<TData, any> = {
+                accessorKey: col.key,
+                header: col.label,
+                enableColumnFilter: true,
+                enableGlobalFilter: true,
+                enableGrouping: true,
+                meta: {
+                   dataType: col.dataType,
+                   options: col.form?.options
+                }
+            }
 
              if (col.dataType === 'date') {
                  baseCol.cell = ({ getValue }) => {
@@ -276,7 +302,7 @@ export function NexusTable<TData, TValue>({
                          return (
                             <div 
                                 className="inline-flex items-center rounded-full border border-transparent px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 gap-1 pr-1 pl-2"
-                                style={{ backgroundColor: col.valueColorMap[val], color: '#fff' }} // Assuming white text for custom colors, or we could calculate contrast
+                                style={{ backgroundColor: col.valueColorMap[val], color: '#fff' }} 
                             >
                                 {val}
                             </div>
@@ -350,60 +376,60 @@ export function NexusTable<TData, TValue>({
 
       // Logic to auto-add Actions column with Kebab Menu
       if (rowActions || onSave || onDelete) {
-          normalizedCols.push({
-              id: 'actions',
-              header: '',
-              enableHiding: false, // Always visible
-              size: 50,
-              cell: ({ row }) => {
-                  return (
-                      <div className="flex justify-end pr-2" onClick={(e) => e.stopPropagation()}>
-                        <NexusDropdownMenu>
-                            <NexusDropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
-                                    <span className="material-symbols-outlined text-[20px]">more_vert</span>
-                                </Button>
-                            </NexusDropdownMenuTrigger>
-                            <NexusDropdownMenuContent align="end" className="w-48 z-50">
-                                <NexusDropdownMenuItem onClick={() => setActiveRow(row)}>
-                                    <span className="material-symbols-outlined mr-2 text-[18px]">visibility</span>
-                                    Visualizar
-                                </NexusDropdownMenuItem>
-                                {onSave && (
-                                    <NexusDropdownMenuItem onClick={() => handleEdit(row.original)}>
-                                        <span className="material-symbols-outlined mr-2 text-[18px]">edit</span>
-                                        Editar
-                                    </NexusDropdownMenuItem>
-                                )}
-                                {onDelete && (
-                                    <NexusDropdownMenuItem 
-                                        onClick={() => handleDeleteRequest(row.original)}
-                                        className="text-destructive focus:text-destructive focus:bg-destructive/10"
-                                    >
-                                        <span className="material-symbols-outlined mr-2 text-[18px]">delete</span>
-                                        Excluir
-                                    </NexusDropdownMenuItem>
-                                )}
-                                {(onSave || onDelete) && rowActions && rowActions.length > 0 && (
-                                    <div className="h-[1px] bg-border my-1"></div>
-                                )}
-                                {rowActions?.map((action, idx) => (
-                                    <NexusDropdownMenuItem 
-                                        key={idx}
-                                        onClick={() => {
-                                            if (action.onClick) action.onClick(row.original)
-                                        }}
-                                    >
-                                        {action.icon && <span className="material-symbols-outlined mr-2 text-[18px]">{action.icon}</span>}
-                                        {action.label}
-                                    </NexusDropdownMenuItem>
-                                ))}
-                            </NexusDropdownMenuContent>
-                        </NexusDropdownMenu>
-                      </div>
-                  )
-              }
-          })
+        normalizedCols.push({
+            id: 'actions',
+            header: '',
+            enableHiding: false, // Always visible
+            size: 50,
+            cell: ({ row }) => {
+                return (
+                    <div className="flex justify-end pr-2" onClick={(e) => e.stopPropagation()}>
+                      <NexusDropdownMenu>
+                          <NexusDropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
+                                  <span className="material-symbols-outlined text-[20px]">more_vert</span>
+                              </Button>
+                          </NexusDropdownMenuTrigger>
+                          <NexusDropdownMenuContent align="end" className="w-48 z-50">
+                              <NexusDropdownMenuItem onClick={() => setActiveRow(row)}>
+                                  <span className="material-symbols-outlined mr-2 text-[18px]">visibility</span>
+                                  Visualizar
+                              </NexusDropdownMenuItem>
+                              {onSave && (
+                                  <NexusDropdownMenuItem onClick={() => handleEdit(row.original)}>
+                                      <span className="material-symbols-outlined mr-2 text-[18px]">edit</span>
+                                      Editar
+                                  </NexusDropdownMenuItem>
+                              )}
+                              {onDelete && (
+                                  <NexusDropdownMenuItem 
+                                      onClick={() => handleDeleteRequest(row.original)}
+                                      className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                                  >
+                                      <span className="material-symbols-outlined mr-2 text-[18px]">delete</span>
+                                      Excluir
+                                  </NexusDropdownMenuItem>
+                              )}
+                              {(onSave || onDelete) && rowActions && rowActions.length > 0 && (
+                                  <div className="h-[1px] bg-border my-1"></div>
+                              )}
+                              {rowActions?.map((action, idx) => (
+                                  <NexusDropdownMenuItem 
+                                      key={idx}
+                                      onClick={() => {
+                                          if (action.onClick) action.onClick(row.original)
+                                      }}
+                                  >
+                                      {action.icon && <span className="material-symbols-outlined mr-2 text-[18px]">{action.icon}</span>}
+                                      {action.label}
+                                  </NexusDropdownMenuItem>
+                              ))}
+                          </NexusDropdownMenuContent>
+                      </NexusDropdownMenu>
+                    </div>
+                )
+            }
+        })
       }
 
       return normalizedCols
@@ -417,21 +443,58 @@ export function NexusTable<TData, TValue>({
   const [expanded, setExpanded] = React.useState<ExpandedState>({})
   const [globalFilter, setGlobalFilter] = React.useState<AdvancedFilterState | string>("")
   
+  // Expand content state
+  const [expandContent, setExpandContent] = React.useState(false)
+  
+  // Responsive: default to card view on mobile
+  const [viewMode, setViewMode] = React.useState<'table' | 'card'>(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768 && !defaultViewMode) {
+      return 'card'
+    }
+    return defaultViewMode
+  })
+  
   // Helper to safely get query string
   const globalFilterQuery = typeof globalFilter === 'string' ? globalFilter : globalFilter?.query || ''
 
   // Load persistence
   React.useEffect(() => {
+      // Must have tableId to persist
       if (!tableId) return;
-      const saved = localStorage.getItem(`nexus-table-${tableId}-visibility`)
-      const savedFilter = localStorage.getItem(`nexus-table-${tableId}-filter`)
       
-      if (saved) setColumnVisibility(JSON.parse(saved))
+      const savedVisibility = localStorage.getItem(`nexus-table-${tableId}-visibility`)
+      const savedFilter = localStorage.getItem(`nexus-table-${tableId}-filter`)
+      const savedSorting = localStorage.getItem(`nexus-table-${tableId}-sorting`)
+      const savedViewMode = localStorage.getItem(`nexus-table-${tableId}-view-mode`)
+      const savedExpandContent = localStorage.getItem(`nexus-table-${tableId}-expand-content`)
+      
+      if (savedVisibility) setColumnVisibility(JSON.parse(savedVisibility))
       if (savedFilter && enableCustomization) {
-          try {
-             setGlobalFilter(JSON.parse(savedFilter)) 
-          } catch(e) {}
+          try { setGlobalFilter(JSON.parse(savedFilter)) } catch(e) {}
       }
+      if (savedSorting) {
+          try { setSorting(JSON.parse(savedSorting)) } catch(e) {}
+      }
+      if (savedViewMode && (savedViewMode === 'table' || savedViewMode === 'card')) {
+          setViewMode(savedViewMode)
+      } else if (defaultViewMode) {
+          setViewMode(defaultViewMode)
+      }
+      if (savedExpandContent) {
+          setExpandContent(savedExpandContent === 'true')
+      }
+  }, [tableId, defaultViewMode])
+
+  // Listen for setting changes
+  React.useEffect(() => {
+      const handleSettingChange = () => {
+          if (!tableId) return
+          const savedExpandContent = localStorage.getItem(`nexus-table-${tableId}-expand-content`)
+          setExpandContent(savedExpandContent === 'true')
+      }
+      
+      window.addEventListener('nexus-table-setting-change', handleSettingChange)
+      return () => window.removeEventListener('nexus-table-setting-change', handleSettingChange)
   }, [tableId])
 
   // Auto-save persistence
@@ -439,25 +502,32 @@ export function NexusTable<TData, TValue>({
       if (!tableId || !enableCustomization) return;
       localStorage.setItem(`nexus-table-${tableId}-visibility`, JSON.stringify(columnVisibility))
       localStorage.setItem(`nexus-table-${tableId}-filter`, JSON.stringify(globalFilter))
-  }, [tableId, enableCustomization, columnVisibility, globalFilter])
+      localStorage.setItem(`nexus-table-${tableId}-sorting`, JSON.stringify(sorting))
+      if (viewMode) localStorage.setItem(`nexus-table-${tableId}-view-mode`, viewMode)
+  }, [tableId, enableCustomization, columnVisibility, globalFilter, sorting, viewMode])
 
   const table = useReactTable({
     data,
     columns: tableColumns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    getPaginationRowModel: enablePagination ? getPaginationRowModel() : undefined,
     onSortingChange: setSorting,
-    getSortedRowModel: getSortedRowModel(),
+    getSortedRowModel: enableSorting ? getSortedRowModel() : undefined,
     getGroupedRowModel: getGroupedRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
     onColumnFiltersChange: setColumnFilters,
-    getFilteredRowModel: getFilteredRowModel(),
+    getFilteredRowModel: enableFiltering ? getFilteredRowModel() : undefined,
+
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     onGroupingChange: setGrouping,
     onExpandedChange: setExpanded,
     onGlobalFilterChange: setGlobalFilter,
     globalFilterFn: advancedGlobalFilterFn,
+    enableRowSelection: enableRowSelection,
+    enableSorting: enableSorting,
+    enableFilters: enableFiltering,
+    enableHiding: enableColumnVisibility,
     state: {
       sorting,
       columnFilters,
@@ -467,12 +537,14 @@ export function NexusTable<TData, TValue>({
       expanded,
       globalFilter
     },
+    meta: {
+      tableId
+    }
   })
 
   // Calculate effective bulk actions
   const effectiveBulkActions = React.useMemo(() => {
       const actions: NexusBulkAction<TData>[] = bulkActions ? [...bulkActions] : []
-      
       if (onBulkEdit) {
           actions.push({
               label: 'Editar',
@@ -481,7 +553,6 @@ export function NexusTable<TData, TValue>({
               onClick: () => setMassEditDialogOpen(true)
           })
       }
-
       if (onBulkDelete) {
           actions.push({
               label: 'Excluir',
@@ -498,36 +569,34 @@ export function NexusTable<TData, TValue>({
       return actions
   }, [bulkActions, onBulkDelete, onBulkEdit, table])
 
-  // Responsive & View Mode Logic
-  const [viewMode, setViewMode] = React.useState<'table' | 'card'>('table')
+  // --- Lazy Initialization to prevent React state update errors ---
+  const [isInitialized, setIsInitialized] = React.useState(false)
 
-  React.useEffect(() => {
-    const checkMobile = () => {
-        const mobile = window.innerWidth < 768
-        if (mobile) setViewMode('card')
-        else setViewMode('table')
-    }
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
-
+  // Initialize component
   // Detail Modal Logic
   const [activeRow, setActiveRow] = React.useState<Row<TData> | null>(null)
   const [detailViewMode, setDetailViewMode] = React.useState<DetailViewMode>(defaultDetailViewMode)
   const [detailLayout, setDetailLayout] = React.useState<DetailSection[]>([])
 
-  // Load layout persistence
+  // Initialize component after mount
+  React.useEffect(() => {
+    setIsInitialized(true)
+  }, [])
+
+  // Auto-switch on mobile only if no preference overriding
+  React.useEffect(() => {
+    // Do not auto-switch back to table on desktop if user preferred 'card', 
+      // unless we want strict responsive behavior. 
+      // User asked to persist "View Mode", so manual toggle > auto.
+      // But initially we can respect screen size if no saved mode.
+  }, [])
+
   React.useEffect(() => {
       if (!tableId || !enableCustomization) return;
       const savedLayout = localStorage.getItem(`nexus-table-${tableId}-detail-layout`)
-      const savedMode = localStorage.getItem(`nexus-table-${tableId}-view-mode`)
       
       if (savedLayout) {
           try { setDetailLayout(JSON.parse(savedLayout)) } catch (e) { console.error(e) }
-      }
-      if (savedMode && ['modal', 'sheet', 'fullscreen'].includes(savedMode)) {
-          setDetailViewMode(savedMode as DetailViewMode)
       }
   }, [tableId, enableCustomization])
 
@@ -537,13 +606,7 @@ export function NexusTable<TData, TValue>({
           localStorage.setItem(`nexus-table-${tableId}-detail-layout`, JSON.stringify(sections))
       }
   }
-
-  const handleViewModeChange = (mode: DetailViewMode) => {
-      setDetailViewMode(mode)
-      if (tableId) {
-          localStorage.setItem(`nexus-table-${tableId}-view-mode`, mode)
-      }
-  }
+  
 
   // Search Value
   const [searchValue, setSearchValue] = React.useState(globalFilterQuery)
@@ -551,10 +614,8 @@ export function NexusTable<TData, TValue>({
   // Debounce search
   React.useEffect(() => {
      const timeout = setTimeout(() => {
-         // Update only query part of globalFilter
          setGlobalFilter(prev => {
              if (typeof prev === 'string') return searchValue
-             // If object, keep rules, update query
              return { ...prev, query: searchValue, logic: prev?.logic || 'and', rules: prev?.rules || [] }
          })
      }, 300)
@@ -565,7 +626,7 @@ export function NexusTable<TData, TValue>({
   const TitleTag = titleAs
 
   return (
-    <div className="flex flex-col gap-4 text-foreground min-h-screen p-6 w-full max-w-[1400px] mx-auto">
+    <div className="flex flex-col gap-4 text-foreground w-full h-full p-6">
       
       {/* Header Toolbar */}
       <div className="flex flex-col md:flex-row gap-4 mb-2 justify-between items-end md:items-center">
@@ -584,48 +645,57 @@ export function NexusTable<TData, TValue>({
               table={table}
               searchValue={searchValue}
               onSearchChange={setSearchValue}
-              detailViewMode={detailViewMode}
-              onDetailViewModeChange={handleViewModeChange}
-              layoutMode={viewMode}
-              onLayoutModeChange={setViewMode}
+            detailViewMode={defaultDetailViewMode as DetailViewMode}
+            onDetailViewModeChange={setDetailViewMode}
+            layoutMode={viewMode}
+            onLayoutModeChange={setViewMode}
               enableCustomization={enableCustomization}
               actions={
                   <>
                       {toolbarActions}
                   </>
               }
+              disabled={!isInitialized}
            />
        </div>
 
-        {/* Bulk Actions Header (Overlay) */}
+      {!isInitialized ? (
+        <div className="flex-1 rounded-md border border-input bg-background/60 backdrop-blur-[4px] overflow-hidden relative flex flex-col">
+          <NexusTableLoading type="spinner" />
+        </div>
+      ) : (
+        <>
+        {/* Bulk Actions Header (Fixed Overlay) */}
         {effectiveBulkActions.length > 0 && table.getFilteredSelectedRowModel().rows.length > 0 && (
-            <div className="mb-4 rounded-lg bg-blue-50/50 border border-blue-100 dark:bg-blue-900/20 dark:border-blue-800 animate-in fade-in slide-in-from-top-2 overflow-hidden">
-                <div className="px-4 py-3 flex items-center justify-between bg-gradient-to-r from-blue-100/50 to-transparent dark:from-blue-900/40">
+            <div className="fixed top-0 left-0 right-0 z-[100] bg-primary/95 dark:bg-primary/90 backdrop-blur-md shadow-lg animate-in fade-in slide-in-from-top-2">
+                <div className="px-6 py-4 flex items-center justify-between max-w-[1400px] mx-auto">
+
                     <div className="flex items-center gap-3">
-                         <div className="flex items-center justify-center w-6 h-6 rounded bg-blue-600 text-white shadow-sm">
-                            <span className="text-xs font-bold">{table.getFilteredSelectedRowModel().rows.length}</span>
+                         <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/20 text-white shadow-sm">
+                            <span className="text-sm font-bold">{table.getFilteredSelectedRowModel().rows.length}</span>
                          </div>
-                         <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                         <span className="text-sm font-medium text-white">
                             registro(s) selecionado(s)
                          </span>
                     </div>
 
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-2">
                         {effectiveBulkActions.map((action, idx) => (
-                            <NexusTooltip key={idx} content={action.label}>
-                                <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className={cn("h-9 w-9 text-blue-700 hover:text-blue-800 hover:bg-blue-200/50 dark:text-blue-300 dark:hover:text-blue-200 dark:hover:bg-blue-800/50",
-                                        action.variant === 'destructive' && "text-red-600 hover:text-red-700 hover:bg-red-100/50 dark:text-red-400 dark:hover:bg-red-900/30"
-                                    )}
-                                    onClick={() => action.onClick(table.getFilteredSelectedRowModel().rows.map(r => r.original))}
-                                >
-                                    <span className="material-symbols-outlined text-[20px]">
-                                        {action.icon || (action.label.toLowerCase().includes('excluir') ? 'delete' : 'edit')}
-                                    </span>
-                                </Button>
-                            </NexusTooltip>
+                            <Button
+                                key={idx}
+                                size="sm"
+                                variant={action.variant === 'destructive' ? 'destructive' : 'ghost'}
+                                className={cn(
+                                    "text-white hover:bg-white/20",
+                                    action.variant === 'destructive' && "bg-destructive hover:bg-destructive/90"
+                                )}
+                                onClick={() => action.onClick(table.getFilteredSelectedRowModel().rows.map(r => r.original))}
+                            >
+                                <span className="material-symbols-outlined text-[18px] mr-1">
+                                    {action.icon || (action.label.toLowerCase().includes('excluir') ? 'delete' : 'edit')}
+                                </span>
+                                {action.label}
+                            </Button>
                         ))}
                     </div>
                 </div>
@@ -638,7 +708,7 @@ export function NexusTable<TData, TValue>({
             onSave={handleSaveData}
             initialData={formData}
             isNew={isNewRecord}
-            columns={columns as NexusColumnDef[]} 
+            columns={columns as unknown as NexusColumnDef[]} 
       />
 
       {/* Mass Edit Dialog */}
@@ -646,7 +716,7 @@ export function NexusTable<TData, TValue>({
           <NexusTableMassEdit
              open={massEditDialogOpen}
              onOpenChange={setMassEditDialogOpen}
-             columns={columns as NexusColumnDef[]}
+             columns={columns as unknown as NexusColumnDef[]}
              onSave={async (colId, val) => {
                  const selectedRows = table.getFilteredSelectedRowModel().rows.map(r => r.original)
                  await onBulkEdit(selectedRows, colId, val)
@@ -656,11 +726,14 @@ export function NexusTable<TData, TValue>({
       )}
 
       {viewMode === 'table' ? (
-      <div className="rounded-md border border-input bg-background/60 backdrop-blur-[4px] overflow-hidden relative min-h-[200px]">
-        {loading && <NexusTableLoading type={loadingType} color={loadingColor} />}
-        <div className="w-full overflow-auto">
+      <div className="flex-1 rounded-md border border-input bg-background/60 backdrop-blur-[4px] overflow-hidden relative flex flex-col">
+        {loading && <NexusTableLoading type={loadingType === 'progress' ? 'bar' : 'spinner'} color={loadingColor} />}
+        <div className="flex-1 overflow-auto">
             <table className="w-full caption-bottom text-sm text-left">
-            <thead className="[&_tr]:border-b [&_tr]:border-border/50">
+            {/* Headers, Body, Footers same as before but ensured persistence/features ... already configured in main replace */}
+            {/* ... keeping existing table structure implies just ensuring the ELSE (card view) is correct */}
+            
+            <thead className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm [&_tr]:border-b [&_tr]:border-border/50">
                 {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id} className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
                     {headerGroup.headers.map((header) => {
@@ -714,14 +787,28 @@ export function NexusTable<TData, TValue>({
                         <tr
                         key={row.id}
                         data-state={row.getIsSelected() && "selected"}
-                        className="border-b border-border/50 transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted cursor-pointer"
-                        onClick={() => setActiveRow(row)}
+                        className={cn(
+                            "border-b border-border/50 transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
+                            (onRowClick || renderDetail) ? "cursor-pointer" : ""
+                        )}
+                        onClick={() => {
+                            if (onRowClick) onRowClick(row)
+                            else setActiveRow(row)
+                        }}
                         >
+
                         {row.getVisibleCells().map((cell) => {
                             if (cell.getIsGrouped()) return null 
                             
+                            const cellClassName = cn(
+                                "p-4 align-middle [&:has([role=checkbox])]:pr-0",
+                                expandContent 
+                                    ? "whitespace-normal break-words min-w-0" 
+                                    : "truncate max-w-xs overflow-hidden text-ellipsis"
+                            )
+                            
                             return (
-                                <td key={cell.id} className="p-4 align-middle [&:has([role=checkbox])]:pr-0">
+                                <td key={cell.id} className={cellClassName}>
                                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                 </td>
                             )
@@ -740,102 +827,106 @@ export function NexusTable<TData, TValue>({
             </table>
         </div>
         
-        {/* Pagination */}
+        {/* Pagination (Shared) */}
         <div className="flex items-center justify-between px-4 py-4 border-t border-input bg-muted/20 relative z-20">
-              <div className="flex-1 text-sm text-muted-foreground mr-4">
-                  {table.getFilteredSelectedRowModel().rows.length} de{" "}
-                  {table.getFilteredRowModel().rows.length} linha(s) selecionada(s).
-              </div>
-              <div className="flex items-center space-x-6 lg:space-x-8">
-                  <div className="flex items-center space-x-2">
+              <div className="flex-1" />
+              <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-muted-foreground whitespace-nowrap">Linhas por página</p>
-                    <div className="w-[70px]">
                         <NexusSelect
                             value={`${table.getState().pagination.pageSize}`}
                             placeholder="10"
                             className="h-8 py-0"
+                            onChange={(val: string) => table.setPageSize(Number(val))}
                             options={[
-                                { label: '10', value: '10' },
-                                { label: '25', value: '25' },
-                                { label: '50', value: '50' },
-                                { label: '100', value: '100' },
+                                {label: '10', value: '10'},
+                                {label: '20', value: '20'},
+                                {label: '50', value: '50'},
+                                {label: '100', value: '100'}
                             ]}
-                            onChange={(val: string) => {
-                                table.setPageSize(Number(val))
-                            }}
                         />
-                    </div>
-                  </div>
+                   </div>
+                   <div className="flex items-center gap-2">
+                       <span className="text-sm font-medium text-muted-foreground">
+                           Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount()}
+                       </span>
+                       <div className="flex items-center gap-1">
+                           <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => table.previousPage()}
+                                disabled={!table.getCanPreviousPage()}
+                            >
+                                <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => table.nextPage()}
+                                disabled={!table.getCanNextPage()}
+                            >
+                                <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                            </Button>
+                       </div>
+                   </div>
               </div>
-              <div className="flex w-[100px] items-center justify-center text-sm font-medium text-muted-foreground">
-                  Página {table.getState().pagination.pageIndex + 1} de{" "}
-                  {table.getPageCount()}
-              </div>
-              <div className="flex items-center space-x-2">
-                  <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={() => table.setPageIndex(0)}
-                      disabled={!table.getCanPreviousPage()}
-                  >
-                      <span className="material-symbols-outlined text-[16px]">first_page</span>
-                  </Button>
-                  <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={() => table.previousPage()}
-                      disabled={!table.getCanPreviousPage()}
-                  >
-                      <span className="material-symbols-outlined text-[16px]">chevron_left</span>
-                  </Button>
-                  <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={() => table.nextPage()}
-                      disabled={!table.getCanNextPage()}
-                  >
-                       <span className="material-symbols-outlined text-[16px]">chevron_right</span>
-                  </Button>
-                  <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                      disabled={!table.getCanNextPage()}
-                  >
-                      <span className="material-symbols-outlined text-[16px]">last_page</span>
-                  </Button>
-              </div>
-      </div>
+        </div>
       </div>
       ) : (
-        <div className="bg-background/60 backdrop-blur-[4px] relative min-h-[200px] rounded-xl">
-             {loading && <NexusTableLoading type={loadingType} color={loadingColor} />}
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-20 p-4">
+        /* CARD VIEW MODE */
+        <div className="flex-1 overflow-auto">
+            {loading && <NexusTableLoading type={loadingType === 'progress' ? 'bar' : 'spinner'} color={loadingColor} />}
+            <div 
+                className={cn(
+                    "grid gap-4 p-2",
+                    cardLayout === 'list' 
+                        ? "grid-cols-1" 
+                        : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                )}
+            >
                 {table.getRowModel().rows.map(row => (
                     <NexusTableCard 
                         key={row.id} 
                         row={row} 
-                        onClick={() => setActiveRow(row)}
+                        onClick={() => {
+                            if (onRowClick) onRowClick(row)
+                            else setActiveRow(row)
+                        }}
                     />
                 ))}
-             </div>
+            </div>
+            {/* Card View Pagination */}
+            <div className="flex justify-center p-4">
+               <div className="flex items-center gap-2">
+                    <Button variant="outline" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>Anterior</Button>
+                    <span className="text-sm text-muted-foreground">Página {table.getState().pagination.pageIndex + 1}</span>
+                    <Button variant="outline" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>Próxima</Button>
+               </div>
+            </div>
         </div>
       )}
 
       <NexusTableDetailView
         open={!!activeRow}
-        onOpenChange={(open) => !open && setActiveRow(null)}
+        onOpenChange={(isOpen) => !isOpen && setActiveRow(null)}
         row={activeRow}
+        title={title}
         enableCustomization={enableCustomization}
         viewMode={detailViewMode}
-        onViewModeChange={handleViewModeChange}
-        initialSections={detailSections || detailLayout}
+        onViewModeChange={() => {}}
+        initialSections={detailLayout.length > 0 ? detailLayout : detailSections}
         onLayoutChange={handleLayoutSave}
         renderDetail={renderDetail}
+        onEdit={onSave ? (row) => handleEdit(row as TData) : undefined}
+        onDelete={onDelete ? (row) => handleDeleteRequest(row as TData) : undefined}
+        rowActions={rowActions?.filter(a => a.onClick).map(a => ({
+          label: a.label,
+          icon: a.icon,
+          onClick: a.onClick!,
+          variant: a.variant
+        }))}
       />
 
         {/* Delete Confirmation Dialog */}
@@ -889,6 +980,8 @@ export function NexusTable<TData, TValue>({
                 </button>
         </div>
        )}
+       </>
+      )}
     </div>
   )
 }

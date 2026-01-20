@@ -83,29 +83,26 @@ export function NexusTableForm({ isOpen, onOpenChange, initialData, columns, onS
                     
                     <form onSubmit={handleSubmit} className="grid gap-4 py-4">
                         {formFields.map((col) => (
-                            <div key={col.key} className="grid grid-cols-4 items-center gap-4">
-                                <label htmlFor={col.key} className="text-right text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                    {col.form?.label || col.label}
-                                    {col.form?.required && <span className="text-destructive ml-1">*</span>}
-                                </label>
-                                <div className="col-span-3">
-                                    {col.form?.type === 'select' ? (
-                                       <NexusSelect
-                                            options={col.form.options || []}
-                                            value={formData[col.key]}
-                                            onChange={(val) => handleChange(col.key, val)}
-                                            placeholder="Selecione..."
-                                       />
-                                    ) : (
-                                        <NexusInput
-                                            id={col.key}
-                                            isPassword={col.form?.type === 'password'}
-                                            value={formData[col.key] || ''}
-                                            onChange={(e) => handleChange(col.key, e.target.value)}
-                                            className="w-full"
-                                        />
-                                    )}
-                                </div>
+                            <div key={col.key} className="w-full">
+                                {col.form?.type === 'select' ? (
+                                    <NexusSelect
+                                        label={col.form?.label || col.label}
+                                        options={col.form.options || []}
+                                        value={formData[col.key]}
+                                        onChange={(val) => handleChange(col.key, val)}
+                                        placeholder="Selecione..."
+                                    />
+                                ) : (
+                                    <NexusInput
+                                        key={col.key}
+                                        id={col.key}
+                                        label={col.form?.label || col.label}
+                                        isPassword={col.form?.type === 'password'}
+                                        value={formData[col.key] || ''}
+                                        onChange={(e) => handleChange(col.key, e.target.value)}
+                                        className="w-full"
+                                    />
+                                )}
                             </div>
                         ))}
                         

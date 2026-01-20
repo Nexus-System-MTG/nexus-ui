@@ -1,4 +1,5 @@
 import * as React from "react"
+import { cn } from "../../lib/utils"
 import { type Table } from "@tanstack/react-table"
 import { NexusTableFilter } from "./NexusTableFilter"
 import { NexusTableSort } from "./NexusTableSort"
@@ -15,6 +16,7 @@ interface NexusTableToolbarProps<TData> {
     onLayoutModeChange: (mode: 'table' | 'card') => void
     enableCustomization?: boolean
     actions?: React.ReactNode
+    disabled?: boolean
 }
 
 export function NexusTableToolbar<TData>({ 
@@ -26,7 +28,8 @@ export function NexusTableToolbar<TData>({
     layoutMode,
     onLayoutModeChange,
     enableCustomization,
-    actions
+    actions,
+    disabled
 }: NexusTableToolbarProps<TData>) {
     
     const [isSearchExpanded, setIsSearchExpanded] = React.useState(!!searchValue)
@@ -50,7 +53,10 @@ export function NexusTableToolbar<TData>({
     }
 
     return (
-        <div className="flex flex-col md:flex-row gap-4 mb-2 justify-between items-end md:items-center bg-background/40 backdrop-blur-sm px-4 py-2 rounded-xl border border-border/50 shadow-sm transition-all">
+        <div className={cn(
+            "flex flex-col md:flex-row gap-4 mb-2 justify-between items-end md:items-center bg-background/40 backdrop-blur-sm px-4 py-2 rounded-xl border border-border/50 shadow-sm transition-all",
+            disabled && "opacity-50 pointer-events-none"
+        )}>
              <div className="flex-1 w-full md:w-auto">
                   <div className="flex items-center gap-2">
                         {/* Search Expanded */}
@@ -107,9 +113,11 @@ export function NexusTableToolbar<TData>({
                   </div>
               </div>
 
-             <div className="flex items-center gap-2">
-                 {actions}
-             </div>
+            {actions && (
+                <div className="flex items-center gap-2">
+                    {actions}
+                </div>
+            )}
         </div>
     )
 }

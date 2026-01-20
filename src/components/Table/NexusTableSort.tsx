@@ -39,9 +39,17 @@ export function NexusTableSort<TData>({ table }: NexusTableSortProps<TData>) {
         table.setSorting(newSorting)
     }
 
+    const handleSaveSort = () => {
+        // Persist current sorting configuration
+        const tableId = (table.options.meta as any)?.tableId
+        if (tableId && typeof window !== 'undefined') {
+            localStorage.setItem(`nexus-table-${tableId}-saved-sort`, JSON.stringify(sorting))
+        }
+        setOpen(false)
+    }
+
     const handleClear = () => {
         table.setSorting([])
-        setOpen(false)
     }
 
     return (
@@ -62,7 +70,7 @@ export function NexusTableSort<TData>({ table }: NexusTableSortProps<TData>) {
                     </NexusTooltipTrigger>
                 </NexusTooltip>
                 <PopoverPortal>
-                    <PopoverContent className="w-[400px] p-0 bg-background border border-border rounded-xl shadow-2xl z-[1000] overflow-hidden" align="end" sideOffset={5}>
+                    <PopoverContent className="w-[450px] p-0 bg-background border border-border rounded-xl shadow-2xl z-[1000] overflow-hidden" align="end" sideOffset={5}>
                     <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center justify-between">
                         <h4 className="font-semibold text-foreground">Ordenar</h4>
                     </div>
@@ -80,11 +88,11 @@ export function NexusTableSort<TData>({ table }: NexusTableSortProps<TData>) {
                          <div className="space-y-2">
                              {sorting.map((sort, index) => (
                                  <div key={index} className="flex items-center gap-2 p-2 rounded-lg bg-accent/20">
-                                     <span className="text-xs font-medium text-muted-foreground w-12 text-right">
+                                     <span className="text-xs font-medium text-muted-foreground w-12 text-right shrink-0">
                                          {index === 0 ? 'Por' : 'E por'}
                                      </span>
                                      
-                                         <div className="flex-1">
+                                     <div className="flex-1 min-w-0">
                                          <NexusSelect
                                             value={sort.id}
                                             onChange={(val) => handleUpdateSort(index, { id: val })}
@@ -92,10 +100,11 @@ export function NexusTableSort<TData>({ table }: NexusTableSortProps<TData>) {
                                                 label: typeof col.columnDef.header === 'string' ? col.columnDef.header : col.id,
                                                 value: col.id
                                             }))}
+                                            className="truncate"
                                          />
                                      </div>
 
-                                     <div className="w-[110px]">
+                                     <div className="w-[120px] shrink-0">
                                          <NexusSelect
                                             value={sort.desc ? 'desc' : 'asc'}
                                             onChange={(val) => handleUpdateSort(index, { desc: val === 'desc' })}
@@ -108,7 +117,7 @@ export function NexusTableSort<TData>({ table }: NexusTableSortProps<TData>) {
 
                                      <button 
                                         onClick={() => handleRemoveSort(index)}
-                                        className="h-9 w-9 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors rounded hover:bg-destructive/10"
+                                        className="h-9 w-9 shrink-0 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors rounded hover:bg-destructive/10"
                                     >
                                         <span className="material-symbols-outlined text-[18px]">close</span>
                                     </button>
@@ -126,10 +135,19 @@ export function NexusTableSort<TData>({ table }: NexusTableSortProps<TData>) {
                 </div>
                 
                  {/* Footer */}
-                <div className="px-4 py-3 bg-muted/30 border-t border-border flex items-center justify-end">
+                <div className="px-4 py-3 bg-muted/30 border-t border-border flex items-center justify-between">
                     <Button variant="ghost" size="sm" onClick={handleClear} className="text-muted-foreground hover:text-foreground">
                         Limpar
                     </Button>
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => setOpen(false)} className="min-w-[100px]">
+                            Fechar
+                        </Button>
+                        <Button variant="primary" size="sm" onClick={handleSaveSort} className="min-w-[100px] font-semibold">
+                            <span className="material-symbols-outlined text-[16px] mr-2">bookmark</span>
+                            Salvar Ordenação
+                        </Button>
+                    </div>
                 </div>
             </PopoverContent>
             </PopoverPortal>

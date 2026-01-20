@@ -19,24 +19,37 @@ interface NexusTableDetailViewProps<TData> {
   open: boolean
   onOpenChange: (open: boolean) => void
   row: Row<TData> | null
+  title?: string
   enableCustomization?: boolean
   viewMode?: DetailViewMode
   onViewModeChange?: (mode: DetailViewMode) => void
   initialSections?: DetailSection[]
   onLayoutChange?: (sections: DetailSection[]) => void
   renderDetail?: (row: TData) => React.ReactNode
+  onEdit?: (row: TData) => void
+  onDelete?: (row: TData) => void
+  rowActions?: Array<{
+    label: string
+    icon?: string
+    onClick: (row: TData) => void
+    variant?: 'primary' | 'destructive' | 'ghost' | 'secondary' | 'outline'
+  }>
 }
 
 export function NexusTableDetailView<TData>({
   open,
   onOpenChange,
   row,
+  title = "Detalhes",
   enableCustomization = false,
   viewMode = 'modal',
   initialSections,
   onLayoutChange,
   renderDetail,
-  onViewModeChange
+  onViewModeChange,
+  onEdit,
+  onDelete,
+  rowActions = []
 }: NexusTableDetailViewProps<TData>) {
   const [isCustomizing, setIsCustomizing] = React.useState(false)
   const [sections, setSections] = React.useState<DetailSection[]>([])
@@ -116,15 +129,15 @@ export function NexusTableDetailView<TData>({
 
   // --- View Mode Styles ---
   const contentStyles = {
-    modal: "fixed left-[50%] top-[50%] z-50 grid w-full max-w-2xl translate-x-[-50%] translate-y-[-50%] gap-4 border border-input bg-background/95 backdrop-blur-[16px] shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-lg max-h-[90vh] flex flex-col",
-    sheet: "fixed inset-y-0 right-0 z-50 h-full w-3/4 gap-4 border-l border-input bg-background/95 backdrop-blur-[16px] p-0 shadow-2xl transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-xl flex flex-col",
-    fullscreen: "fixed inset-0 z-50 w-full h-full bg-background/95 backdrop-blur-[16px] p-0 shadow-2xl transition-all data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 flex flex-col"
+    modal: "fixed left-[50%] top-[50%] z-[150] grid w-full max-w-2xl translate-x-[-50%] translate-y-[-50%] gap-4 border border-input bg-background/95 backdrop-blur-[16px] shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 sm:rounded-lg max-h-[90vh] flex flex-col",
+    sheet: "fixed inset-y-0 right-0 z-[150] h-full w-3/4 gap-4 border-l border-input bg-background/95 backdrop-blur-[16px] p-0 shadow-2xl transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-xl flex flex-col",
+    fullscreen: "fixed inset-0 z-[150] w-full h-full bg-background/95 backdrop-blur-[16px] p-0 shadow-2xl transition-all data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 flex flex-col"
   }
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-background/80 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-[150] bg-background/80 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         
         <DialogPrimitive.Content className={contentStyles[viewMode]}>
           
@@ -154,7 +167,7 @@ export function NexusTableDetailView<TData>({
                       </div>
                   )}
                   <DialogPrimitive.Title className="text-lg font-semibold text-foreground">
-                      {isCustomizing ? 'Personalizar Layout' : 'Detalhes'}
+                      {isCustomizing ? 'Personalizar Layout' : title}
                   </DialogPrimitive.Title>
               </div>
               
@@ -199,7 +212,7 @@ export function NexusTableDetailView<TData>({
           </div>
 
           {/* Content */}
-          <div className={cn("flex-1 overflow-y-auto px-6 py-6 space-y-8", viewMode === 'fullscreen' ? "max-w-7xl mx-auto w-full" : "")}>
+          <div className={cn("flex-1 overflow-y-auto px-6 py-6 space-y-8 max-h-[calc(100vh-200px)]", viewMode === 'fullscreen' ? "max-w-7xl mx-auto w-full" : "")}>
             
             {isCustomizing ? (
                 /* EDIT MODE */
@@ -299,6 +312,53 @@ export function NexusTableDetailView<TData>({
             ) : (
               /* VIEW MODE */
               <div className="flex flex-col gap-6">
+                 {/* Actions Section */}
+                 {(onEdit || onDelete || rowActions.length > 0) && row && (
+                    <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+                       <div className="bg-muted/30 px-4 py-3 border-b border-border">
+                          <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">
+                             Ações
+                          </h3>
+                       </div>
+                       <div className="p-4 flex flex-wrap gap-2">
+                          {onEdit && (
+                             <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => onEdit(row.original)}
+                                className="gap-2"
+                             >
+                                <span className="material-symbols-outlined text-[18px]">edit</span>
+                                Editar
+                             </Button>
+                          )}
+                          {onDelete && (
+                             <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => onDelete(row.original)}
+                                className="gap-2"
+                             >
+                                <span className="material-symbols-outlined text-[18px]">delete</span>
+                                Excluir
+                             </Button>
+                          )}
+                          {rowActions.map((action, idx) => (
+                             <Button
+                                key={idx}
+                                variant={action.variant || 'secondary'}
+                                size="sm"
+                                onClick={() => action.onClick(row.original)}
+                                className="gap-2"
+                             >
+                                {action.icon && <span className="material-symbols-outlined text-[18px]">{action.icon}</span>}
+                                {action.label}
+                             </Button>
+                          ))}
+                       </div>
+                    </div>
+                 )}
+
                  {/* Custom Render Detail (Pre-Sections) */}
                  {renderDetail && row && (
                     <div className="bg-card border border-border rounded-xl p-0 overflow-hidden shadow-sm">
