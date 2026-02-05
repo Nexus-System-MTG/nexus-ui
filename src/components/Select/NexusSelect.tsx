@@ -136,7 +136,7 @@ export function NexusSelect({
   }
   
   const wrapperClasses = cn(
-      "group flex items-center relative rounded-md border border-input bg-background/60 backdrop-blur-[4px] px-3 py-2.5 text-sm ring-offset-background transition-all duration-200",
+      "group flex items-center relative rounded-md border border-input bg-background/60 backdrop-blur-[4px] px-3 h-[54px] text-sm ring-offset-background transition-all duration-200",
       "focus-within:border-primary focus-within:ring-0 focus-within:ring-offset-0",
       error && "border-destructive focus-within:border-destructive",
       disabled && "opacity-50 cursor-not-allowed",
@@ -148,7 +148,7 @@ export function NexusSelect({
         "absolute left-3 transition-all duration-200 pointer-events-none bg-background px-1 z-10",
         // Floating state (active or has value)
         // We use 'open' state here effectively as focus-within, plus hasValue check
-        (open || hasValue) ? "-top-2 text-xs text-primary" : "top-2.5 text-muted-foreground text-sm",
+        (open || hasValue) ? "-top-2 text-xs text-primary" : "top-4 text-muted-foreground text-sm",
         !open && hasValue && "text-muted-foreground", // Reset color if not focused but has value
         open && "text-primary",
         error && "text-destructive"

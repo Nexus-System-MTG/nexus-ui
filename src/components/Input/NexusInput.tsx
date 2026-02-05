@@ -55,7 +55,7 @@ const NexusInput = React.forwardRef<HTMLInputElement, NexusInputProps>(
       : rightIcon
 
     const wrapperClasses = cn(
-      "group flex items-center relative rounded-md border h-10 px-3 text-sm ring-offset-background transition-all duration-200",
+      "group flex items-center relative rounded-md border h-[54px] px-3 text-sm ring-offset-background transition-all duration-200",
       
       // Variants
       variant === 'outline' && "border-input bg-background/60 backdrop-blur-[4px] focus-within:border-primary",
@@ -83,7 +83,7 @@ const NexusInput = React.forwardRef<HTMLInputElement, NexusInputProps>(
         leftIcon ? "left-9" : "left-3",
         // Floating state (active or has value)
         "group-focus-within:-top-2 group-focus-within:text-xs group-focus-within:text-primary",
-        hasValue ? "-top-2 text-xs" : "top-2.5 text-muted-foreground text-sm",
+        hasValue ? "-top-2 text-xs" : "top-4 text-muted-foreground text-sm",
         error && "text-destructive group-focus-within:text-destructive"
     )
 

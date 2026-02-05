@@ -5,11 +5,11 @@ Uma biblioteca de componentes React moderna, bonita e altamente customizável, c
 ## 📦 Instalação
 
 ```bash
-npm install nexus-ui
+npm install @nexus-mtg/nexus-ui
 # ou
-yarn add nexus-ui
+yarn add @nexus-mtg/nexus-ui
 # ou
-pnpm add nexus-ui
+pnpm add @nexus-mtg/nexus-ui
 ```
 
 Certifique-se de ter as dependências de pares instaladas:
