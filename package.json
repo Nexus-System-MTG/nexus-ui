@@ -1,6 +1,6 @@
 {
   "name": "@nexus-mtg/nexus-ui",
-  "version": "0.0.41",
+  "version": "0.0.42",
   "type": "module",
   "main": "./dist/nexus-ui.umd.js",
   "module": "./dist/nexus-ui.es.js",
