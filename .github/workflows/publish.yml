@@ -28,5 +28,12 @@ jobs:
           node -v
           npm -v
 
+      - name: Upgrade npm
+        run: npm install -g npm@latest
+
       - name: Publish to npm
-        run: npm publish --access public --provenance --registry https://registry.npmjs.org/
+        run: |
+          unset NODE_AUTH_TOKEN
+          npm publish --access public --provenance --registry https://registry.npmjs.org/
+        env:
+          NODE_AUTH_TOKEN: "" # Ensure it is empty
